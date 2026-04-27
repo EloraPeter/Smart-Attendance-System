@@ -1,41 +1,75 @@
-# dependencies
+# =====================
+# Dependencies
+# =====================
 node_modules/
+
+# =====================
+# Logs
+# =====================
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# builds
-dist/
-build/
-out/
-
-# env files
-.env
-.env.local
-.env.development
-.env.test
-.env.production
-
-# logs
 logs/
 *.log
 
-# OS files
-.DS_Store
-Thumbs.db
+# =====================
+# Environment variables
+# =====================
+.env
+.env.*
+!.env.example
 
-# IDE
-.vscode/
-.idea/
-
-# Next.js / React
+# =====================
+# Builds
+# =====================
+dist/
+build/
+out/
 .next/
 .cache/
 
-# coverage
+# =====================
+# Database (PocketBase) 🚨 IMPORTANT
+# =====================
+backend/pb_data/
+portable/backend/pb_data/
+
+# =====================
+# Executables (PocketBase)
+# =====================
+*.exe
+
+# =====================
+# Archives
+# =====================
+*.zip
+
+# =====================
+# OS files
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# IDE
+# =====================
+.vscode/
+.idea/
+
+# =====================
+# Testing / coverage
+# =====================
 coverage/
 
-# optional uploads/temp
-uploads/
+# =====================
+# temp files
+# =====================
 tmp/
 temp/
+uploads/
+
+# =====================
+# Portable scripts (optional keep)
+# =====================
+*.bat
+*.sh
