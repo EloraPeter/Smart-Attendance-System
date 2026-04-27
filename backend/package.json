@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "pocketbase": "^0.26.8",
+      "type": "module"
+
+  }
+}

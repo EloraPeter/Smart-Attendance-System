@@ -1,0 +1,18 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@headlessui/react": "^2.2.10",
+    "@heroicons/react": "^2.2.0",
+    "pocketbase": "^0.26.8",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.14.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/xlsx": "^0.0.35",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.12",
+    "tailwindcss": "^4.2.4"
+  }
+}
