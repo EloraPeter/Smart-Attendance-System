@@ -50,25 +50,30 @@ const BulkImport: React.FC = () => {
     }
 
     setIsLoading(true);
-    let success = 0;
-    let failed = 0;
 
-    for (const student of previewData) {
-      try {
-        await pb.collection('students').create({
+    const results = await Promise.allSettled(
+      previewData.map((student) =>
+        pb.collection('students').create({
           matric_number: student.matric_number || student.MatricNumber,
           full_name: student.full_name || student.FullName || student.name,
           department: student.department || student.Department,
           level: student.level || student.Level,
           email: student.email || student.Email || '',
           phone: student.phone || student.Phone || '',
-        });
+        })
+      )
+    );
+
+    let success = 0;
+    let failed = 0;
+    results.forEach((result, i) => {
+      if (result.status === 'fulfilled') {
         success++;
-      } catch (error) {
-        console.error('Failed to import student:', student, error);
+      } else {
         failed++;
+        console.error('Failed to import student:', previewData[i], result.reason);
       }
-    }
+    });
 
     toast.success(`Import complete: ${success} added, ${failed} failed`);
     setPreviewData([]);

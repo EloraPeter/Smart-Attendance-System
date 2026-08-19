@@ -21,6 +21,7 @@ const MarkAttendance: React.FC = () => {
   const [hasMarkedToday, setHasMarkedToday] = useState(false);
   const [saving, setSaving] = useState(false);
   const [existingAttendanceRecords, setExistingAttendanceRecords] = useState<any[]>([]);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -56,6 +57,7 @@ const MarkAttendance: React.FC = () => {
     
     try {
       setIsLoading(true);
+      setIsEditing(false);
       
       // Get enrolled students
       const enrollments = await pb.collection('course_enrollments').getList(1, 500, {
@@ -100,8 +102,8 @@ const MarkAttendance: React.FC = () => {
   };
 
   const handleStatusChange = (studentId: string, status: string) => {
-    if (hasMarkedToday) {
-      toast.error('Attendance already marked for this date. Change the date to edit.');
+    if (hasMarkedToday && !isEditing) {
+      toast.error('Attendance already marked for this date. Click "Edit" to make changes.');
       return;
     }
     setAttendanceStatus((prev) => ({
@@ -116,8 +118,8 @@ const MarkAttendance: React.FC = () => {
       return;
     }
 
-    if (hasMarkedToday) {
-      toast.error(`Attendance already marked for ${selectedDate}. Please select a different date.`);
+    if (hasMarkedToday && !isEditing) {
+      toast.error(`Attendance already marked for ${selectedDate}. Click "Edit" to make changes.`);
       return;
     }
 
@@ -131,11 +133,12 @@ const MarkAttendance: React.FC = () => {
     setSaving(true);
 
     try {
-      // Delete any existing attendance for this date/course (safety check)
+      // Delete any existing attendance for this date/course (covers the
+      // edit flow, and acts as a safety check otherwise)
       if (existingAttendanceRecords.length > 0) {
-        for (const record of existingAttendanceRecords) {
-          await pb.collection('attendance').delete(record.id);
-        }
+        await Promise.all(
+          existingAttendanceRecords.map((record) => pb.collection('attendance').delete(record.id))
+        );
       }
 
       // Create new attendance records
@@ -150,13 +153,15 @@ const MarkAttendance: React.FC = () => {
           lecturer: user?.id,
         }));
 
-      // Save all records
-      for (const record of attendanceRecords) {
-        await pb.collection('attendance').create(record);
-      }
-      
+      // Save all records in parallel instead of one request at a time
+      await Promise.all(
+        attendanceRecords.map((record) => pb.collection('attendance').create(record))
+      );
+
       toast.success(`✅ Attendance saved for ${attendanceRecords.length} students on ${selectedDate}`);
-      
+
+      setIsEditing(false);
+
       // IMPORTANT: Reload the data to show saved status
       await loadAttendanceData();
       
@@ -179,6 +184,12 @@ const MarkAttendance: React.FC = () => {
   const markedCount = presentCount + lateCount + absentCount;
 
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
+
+  // Mirrors the backend rule: an admin can edit any record, a lecturer can
+  // only edit attendance they marked themselves.
+  const canEditRecords =
+    hasMarkedToday &&
+    (isAdmin || existingAttendanceRecords.every((record) => record.lecturer === user?.id));
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -250,7 +261,7 @@ const MarkAttendance: React.FC = () => {
                   <p className="text-xs text-gray-600">Enrolled</p>
                 </div>
               </div>
-              {!hasMarkedToday && markedCount > 0 && (
+              {(!hasMarkedToday || isEditing) && markedCount > 0 && (
                 <button
                   onClick={handleSubmit}
                   disabled={saving}
@@ -259,15 +270,25 @@ const MarkAttendance: React.FC = () => {
                   {saving ? (
                     <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div> Saving...</>
                   ) : (
-                    <><CheckCircleIcon className="w-5 h-5 mr-2" /> Save Attendance ({markedCount})</>
+                    <><CheckCircleIcon className="w-5 h-5 mr-2" /> {isEditing ? 'Save Changes' : 'Save Attendance'} ({markedCount})</>
                   )}
                 </button>
               )}
-              {hasMarkedToday && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm">
-                  <CheckCircleIcon className="w-4 h-4 mr-1" />
-                  Attendance recorded for {selectedDate}
-                </span>
+              {hasMarkedToday && !isEditing && (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-green-100 text-green-700 text-sm">
+                    <CheckCircleIcon className="w-4 h-4 mr-1" />
+                    Attendance recorded for {selectedDate}
+                  </span>
+                  {canEditRecords && (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium underline"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -320,7 +341,7 @@ const MarkAttendance: React.FC = () => {
                         {student.department}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        {hasMarkedToday ? (
+                        {hasMarkedToday && !isEditing ? (
                           // Show status as text when already marked
                           <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
                             attendanceStatus[student.id] === 'present' ? 'bg-green-100 text-green-700' :

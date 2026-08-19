@@ -1,11 +1,13 @@
 import PocketBase from 'pocketbase';
 
-// Auto-detect PocketBase URL
+// Auto-detect PocketBase URL. An explicit env var always wins (needed for
+// any deployment off localhost); otherwise fall back to the local dev/demo
+// default so `start-system.bat` keeps working untouched.
 const getPocketBaseUrl = () => {
-  if (window.location.port === '3000') {
-    return 'http://127.0.0.1:8090';
+  if (process.env.REACT_APP_PB_URL) {
+    return process.env.REACT_APP_PB_URL;
   }
-  return process.env.REACT_APP_PB_URL || 'http://127.0.0.1:8090';
+  return 'http://127.0.0.1:8090';
 };
 
 export const pb = new PocketBase(getPocketBaseUrl());
